@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Nebulosa — DZI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preload" href="./libs/openseadragon.min.js" as="script">
+  <style>
+    html, body { margin:0; height:100%; background:#111; }
+    #osd { width:100%; height:100%; }
+    #log { position:fixed; left:8px; bottom:8px; color:#0f0; font:12px monospace;
+           background:rgba(0,0,0,.6); padding:6px 8px; border-radius:6px; z-index:1000; }
+    /* Panel lateral básico (el resto lo maneja SidePanel) */
+    #sidepanel { position: fixed; top:0; right:0; height:100%; width:360px; max-width:85vw;
+      background:#171717; color:#eee; border-left:1px solid #2a2a2a; transform:translateX(100%);
+      transition:transform .25s ease; box-shadow:-8px 0 20px rgba(0,0,0,.35); z-index:999;
+      display:flex; flex-direction:column; }
+    #sidepanel.open { transform:translateX(0); }
+  </style>
+  <script src="./libs/openseadragon.min.js"></script>
+</head>
+<body>
+  <div id="osd"></div>
+  <div id="log">init…</div>
+
+  <aside id="sidepanel" aria-hidden="true">
+    <div id="sp-head">
+      <h3 id="sp-title">Título</h3>
+      <button id="sp-close" title="Cerrar">Cerrar</button>
+    </div>
+    <div id="sp-body">Contenido…</div>
+  </aside>
+
+  <script type="module" src="../src/main.js"></script>
+</body>
+</html>
