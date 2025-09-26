@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no" />
+  <title>Aladin Lite v3 – Demo</title>
+  <!-- Usa la URL oficial recomendada para v3 -->
+  <script src="https://aladin.u-strasbg.fr/AladinLite/api/v3/latest/aladin.js"></script>
+  <style>
+    html, body {height:100%; margin:0; background:#0b1020; color:#e7eefc; font:14px system-ui, -apple-system, Segoe UI, Roboto;}
+    #aladin {width:100%; height:90vh;}
+    .bar {padding:8px 12px;}
+    select, input, button {background:#0e1430; color:#e7eefc; border:1px solid #22305f; border-radius:8px; padding:6px 8px;}
+    button {cursor:pointer; font-weight:600;}
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <label>Capa:</label>
+    <select id="survey">
+      <option value="P/DSS2/color">DSS2 (color)</option>
+      <option value="P/2MASS/color">2MASS (IR)</option>
+      <option value="P/AllWISE/color">AllWISE (IR)</option>
+      <option value="P/GALEXGR6/AIS/color">GALEX (UV)</option>
+      <option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS</option>
+    </select>
+    <label style="margin-left:8px">Objetivo:</label>
+    <input id="target" placeholder="M31, Saturn, 10.6847 41.269..." size="28" />
+    <button id="go">Ir</button>
+  </div>
+
+  <div id="aladin"></div>
+
+  <script>
+    // Espera a que Aladin Lite v3 termine su init
+    A.init
+      .then(() => {
+        const aladin = A.aladin('#aladin', {
+          survey: 'P/DSS2/color',
+          target: 'M31',
+          fov: 5,
+          reticle: true,
+          showFullscreenControl: true,
+          showZoomControl: true
+        });
+
+        // Controles
+        document.getElementById('survey').addEventListener('change', (e) => {
+          const s = e.target.value;
+          aladin.setBaseImageLayer(aladin.createImageSurvey(s, s, s, '', '', s));
+        });
+        document.getElementById('go').addEventListener('click', () => {
+          const t = document.getElementById('target').value.trim();
+          if (t) aladin.gotoObject(t);
+        });
+      })
+      .catch(err => {
+        console.error('Error inicializando Aladin Lite:', err);
+        alert('Tu navegador necesita WebGL2 para Aladin Lite v3.\nPrueba con otro navegador o actualiza drivers.');
+      });
+  </script>
+</body>
+</html>

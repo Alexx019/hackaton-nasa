@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Nebulosa — DZI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body { margin:0; height:100%; background:#111; }
+    #osd { width:100%; height:100%; }
+    #log { position:fixed; left:8px; bottom:8px; color:#0f0; font:12px monospace; background:rgba(0,0,0,.6); padding:6px 8px; border-radius:6px; z-index:1000; }
+
+    /* Panel lateral */
+    #sidepanel {
+      position: fixed; top: 0; right: 0; height: 100%;
+      width: 360px; max-width: 85vw;
+      background: #171717; color: #eee; border-left: 1px solid #2a2a2a;
+      transform: translateX(100%); transition: transform .25s ease;
+      box-shadow: -8px 0 20px rgba(0,0,0,.35); z-index: 999;
+      display: flex; flex-direction: column;
+    }
+    #sidepanel.open { transform: translateX(0); }
+    #sp-head { padding: 14px 16px; border-bottom: 1px solid #2a2a2a; display:flex; align-items:center; gap:10px; }
+    #sp-head h3 { margin: 0; font: 600 16px/1.2 system-ui, sans-serif; }
+    #sp-close { margin-left:auto; background:#2a2a2a; color:#ddd; border:0; padding:8px 10px; border-radius:8px; cursor:pointer; }
+    #sp-body { padding: 14px 16px; overflow:auto; font: 14px/1.5 system-ui, sans-serif; }
+
+    /* Pin/overlay */
+    .poi {
+      position: absolute; /* OSD recoloca con transforms */
+      transform: translate(-50%, -50%); /* centrar sobre el punto */
+      pointer-events: auto; /* recibir hover/click */
+      z-index: 10;
+    }
+    .poi-btn {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: #00d8ff; border: 2px solid #fff3;
+      box-shadow: 0 0 0 3px rgba(0,216,255,.25);
+      cursor: pointer;
+    }
+    .poi:hover .poi-btn { box-shadow: 0 0 0 5px rgba(0,216,255,.35); }
+
+    /* Tooltip simple */
+    .poi .tip {
+      position: absolute; left: 50%; top: -10px; transform: translate(-50%, -100%);
+      background: rgba(0,0,0,.8); color:#eee; padding:6px 8px; border-radius:8px;
+      white-space: nowrap; font: 12px/1.2 system-ui,sans-serif; pointer-events:none;
+      border: 1px solid #2a2a2a; opacity: 0; transition: opacity .12s ease;
+    }
+    .poi:hover .tip { opacity: 1; }
+  </style>
+  <script src="libs/openseadragon.min.js"></script>
+</head>
+<body>
+  <div id="osd"></div>
+  <div id="log">init…</div>
+
+  <!-- Panel lateral -->
+  <aside id="sidepanel" aria-hidden="true">
+    <div id="sp-head">
+      <h3 id="sp-title">Título</h3>
+      <button id="sp-close" title="Cerrar">Cerrar</button>
+    </div>
+    <div id="sp-body">Contenido…</div>
+  </aside>
+
+  <script>
+    const log = (...a)=>{ console.log(...a); document.getElementById('log').textContent = a.join(' '); };
+
+    if(!window.OpenSeadragon){ log('❌ No carga libs/openseadragon.min.js'); throw new Error('OSD no cargó'); }
+    log('✅ OSD ok — cargando DZI…');
+
+    const viewer = OpenSeadragon({
+      id: 'osd',
+      prefixUrl: 'https://openseadragon.github.io/openseadragon/images/',
+      tileSources: 'resources/ViaLactea/out_dzi.dzi',
+      showNavigator: true,
+      navigatorAutoFade: false,
+      animationTime: 0.2,
+      blendTime: 0.1,
+      maxZoomPixelRatio: 2,
+
+      // Evita zoom al hacer click sobre el lienzo (dejamos doble click si quieres)
+      gestureSettingsMouse: { clickToZoom: false, dblClickToZoom: true, dragToPan: true, scrollToZoom: true },
+      gestureSettingsTouch: { clickToZoom: false, dblClickToZoom: true, pinchToZoom: true, flickEnabled: true }
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1) Define tus puntos (coordenadas normalizadas 0–1)
+    //    Usa minZoom en términos de "zoom de imagen" (no de viewport).
+    // ─────────────────────────────────────────────────────────────────────────
+    const POIS = [
+      { id:'p1', x:0.732, y:0.415, title:'Región A',      desc:'Nube molecular con emisión intensa.',      minZoom: 1.0 },
+      { id:'p2', x:0.284, y:0.612, title:'Cúmulo Joven',  desc:'Concentración de estrellas de 5–10 Myr.',   minZoom: 2.0 },
+      { id:'p3', x:0.520, y:0.300, title:'Filamento',     desc:'Estructura filamentaria con polvo frío.',   minZoom: 6.0 }
+    ];
+
+    const overlayEls = new Map(); // id -> HTMLElement
+    const poiVisible = new Map(); // id -> bool (para histéresis)
+    let imgSize = null;           // tamaño de la imagen completa (px del DZI)
+
+    // Panel helpers
+    const panel = document.getElementById('sidepanel');
+    const spTitle = document.getElementById('sp-title');
+    const spBody  = document.getElementById('sp-body');
+    const spClose = document.getElementById('sp-close');
+    spClose.addEventListener('click', ()=> closePanel());
+    function openPanel(poi){
+      spTitle.textContent = poi.title;
+      spBody.innerHTML = `<p>${poi.desc || 'Sin descripción.'}</p>`;
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden','false');
+    }
+    function closePanel(){
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden','true');
+    }
+
+    // Crea DOM para un POI (con bloqueo de gestos del visor)
+    function createPoiElement(poi){
+      const wrap = document.createElement('div');
+      wrap.className = 'poi';
+      wrap.id = `poi-${poi.id}`;
+      wrap.dataset.id = poi.id;
+      wrap.style.display = 'none';            // evita flashes antes de controlar visibilidad
+      wrap.style.pointerEvents = 'none';      // se activa cuando es visible
+
+      const dot = document.createElement('div');
+      dot.className = 'poi-btn';
+      dot.title = poi.title; // hint del navegador
+
+      const tip = document.createElement('div');
+      tip.className = 'tip';
+      tip.textContent = poi.title;
+
+      wrap.appendChild(dot);
+      wrap.appendChild(tip);
+
+      // Cancela los eventos que OSD podría interpretar como zoom/pan
+      const stopAll = (e)=>{
+        OpenSeadragon.cancelEvent(e);
+        e.preventDefault();
+        e.stopPropagation();
+      };
+      wrap.addEventListener('mousedown', stopAll);
+      wrap.addEventListener('touchstart', stopAll, { passive: false });
+      wrap.addEventListener('click', (e)=>{ stopAll(e); openPanel(poi); });
+
+      return wrap;
+    }
+
+    // Añade/actualiza overlays en la posición correcta
+    function addOrUpdateOverlays(){
+      if(!imgSize) return;
+      for(const poi of POIS){
+        let el = overlayEls.get(poi.id);
+        if(!el){
+          el = createPoiElement(poi);
+          overlayEls.set(poi.id, el);
+        }
+        // convierte normalizado -> imagen px -> viewport
+        const imgPt = new OpenSeadragon.Point(poi.x * imgSize.x, poi.y * imgSize.y);
+        const vpPt  = viewer.viewport.imageToViewportCoordinates(imgPt);
+
+        if(viewer.getOverlayById(el)){
+          viewer.updateOverlay(el, vpPt, OpenSeadragon.Placement.CENTER);
+        } else {
+          viewer.addOverlay({ element: el, location: vpPt, placement: OpenSeadragon.Placement.CENTER });
+        }
+      }
+      updatePoiVisibility();
+    }
+
+    // Visibilidad con histéresis para evitar parpadeos
+    function updatePoiVisibility(){
+      // Zoom de imagen real (no de viewport)
+      const imgZoom = viewer.viewport.viewportToImageZoom(viewer.viewport.getZoom());
+      const EPS = 0.05; // 5% de histéresis
+
+      for(const poi of POIS){
+        const el = overlayEls.get(poi.id);
+        if(!el) continue;
+
+        const minZ = poi.minZoom ?? 1.5;
+        const wasVisible = poiVisible.get(poi.id) ?? false;
+
+        // Si estaba visible, permitimos que siga hasta minZ - EPS;
+        // si estaba oculto, exigimos minZ + EPS para aparecer.
+        const shouldBeVisible = wasVisible ? (imgZoom >= minZ - EPS) : (imgZoom >= minZ + EPS);
+
+        poiVisible.set(poi.id, shouldBeVisible);
+        if(shouldBeVisible){
+          el.style.display = 'block';
+          el.style.opacity = '1';
+          el.style.pointerEvents = 'auto';
+        } else {
+          el.style.display = 'none';
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Eventos OSD
+    // ─────────────────────────────────────────────────────────────────────────
+    viewer.addHandler('open', ()=>{
+      log('✅ DZI abierto');
+      const item = viewer.world.getItemAt(0);
+      imgSize = item.getContentSize(); // {x,y} en px del DZI completo
+      addOrUpdateOverlays();
+      viewer.viewport.goHome(true);
+    });
+
+    // Recalcular visibilidad en cambios de zoom/animación
+    viewer.addHandler('zoom', updatePoiVisibility);
+    viewer.addHandler('animation', updatePoiVisibility);
+    viewer.addHandler('resize', addOrUpdateOverlays);
+
+    viewer.addHandler('open-failed', e => { console.error(e); log('❌ open-failed: revisa Network para nebulosa.dzi'); });
+    viewer.addHandler('add-item-failed', e => { console.error(e); log('❌ add-item-failed (DZI inválido?)'); });
+    viewer.addHandler('tile-load-failed', e => { 
+      console.warn('tile-load-failed', e?.message || e);
+      log('⚠️ tile-load-failed: mira Network → ¿404 en nebulosa_files/... ?');
+    });
+
+    // Cierra panel si haces click en “fondo”
+    viewer.addHandler('canvas-click', ()=> closePanel());
+  </script>
+</body>
+</html>

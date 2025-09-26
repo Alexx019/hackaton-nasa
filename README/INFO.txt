@@ -1,0 +1,243 @@
+1) El problema original: imágenes gigantes en navegadores
+
+Tu imagen es 18 000×18 000 px (324 megapíxeles).
+
+Un JPG/PNG ocupa poco en disco, pero al dibujarlo el navegador debe descomprimirlo en memoria:
+
+18 000 × 18 000 × 4 bytes ≈ 1,3 GB (RGBA).
+
+Los navegadores tienen límites (aprox.):
+
+Chrome/Edge: ~268 MP de textura.
+
+Firefox: ~128 MP.
+
+Resultado: a 18k×18k muchos navegadores no la dibujan (pantalla negra).
+
+Al reducirla a 15k×15k (225 MP) ya entra en el límite y se ve.
+
+Conclusión de examen: el cuello de botella no es “MB en disco”, sino pixeles totales y memoria de textura. Para ver la imagen completa con fluidez, necesitamos teselar (cortar en tiles) y cargar solo lo visible a cada zoom.
+
+2) La idea clave: Deep Zoom (DZI)
+
+Deep Zoom Image (DZI) es un formato “manifiesto + mosaico de tiles”:
+
+Un archivo *.dzi (XML) describe la pirámide de resoluciones y cómo se nombran los tiles.
+
+Una carpeta *_files/ contiene niveles 0..N con miles de tiles 256×256 px.
+
+En vez de cargar 1.3 GB, el visor solo pide los tiles que están a la vista (y del nivel adecuado).
+
+Ventaja: fluidez, rapidez y sin exceder límites de textura.
+
+3) Cómo generamos DZI (con libvips)
+
+Usamos libvips porque:
+
+Es rápido, estable y tiene un comando directo dzsave.
+
+En Windows hay versión portable (ZIP) → no “instala” nada, solo ejecutas vips.exe.
+
+Pasos:
+
+Descargas el ZIP de libvips y lo descomprimes en C:\libvips\.
+Dentro está C:\libvips\bin\vips.exe.
+
+En PowerShell, desde la carpeta de tu imagen:
+
+C:\libvips\bin\vips.exe dzsave .\nebulosa.jpg .\nebulosa ^
+  --tile-size 256 ^
+  --overlap 0 ^
+  --suffix ".jpg[Q=90]"
+
+
+dzsave: convierte a DZI.
+
+tile-size 256: tamaño típico de tile.
+
+overlap 0: sin solape entre tiles.
+
+suffix ".jpg[Q=90]": tiles en JPG calidad 90 (podrías usar .png si prefieres).
+
+Resultado en disco:
+
+nebulosa.dzi
+nebulosa_files/
+  ├─ 0/
+  ├─ 1/
+  └─ ...
+
+
+El nombre base debe coincidir (importantísimo para el visor).
+
+4) Estructura del proyecto (la que usamos)
+tu-carpeta/
+├─ viewer.html           ← el visor
+├─ nebulosa.dzi
+└─ nebulosa_files/       ← tiles por niveles
+   ├─ 0/
+   ├─ 1/
+   └─ ...
+
+5) Servir archivos: por qué necesitas un servidor local
+
+Los navegadores restringen el acceso a archivos locales (CORS, rutas relativas, etc.).
+
+Con un servidor estático simple se evitan estos bloqueos.
+
+Ejemplo con Node:
+
+npx http-server . -p 8080
+
+
+Luego abres http://localhost:8080/viewer.html.
+
+En examen: “¿Por qué no doble click al HTML?” → Por CORS/rutas; un servidor estático evita problemas.
+
+6) El visor: OpenSeadragon (OSD)
+
+Qué es: una librería JavaScript pensada para “deep zoom” (museos, microscopía, astronomía…).
+
+Qué hace por ti:
+
+Lee el *.dzi.
+
+Calcula el nivel adecuado según el zoom.
+
+Pide solo los tiles visibles.
+
+Anima el pan/zoom, muestra minimapa, etc.
+
+6.1 viewer.html (qué hace cada parte)
+
+Versión mínima típica (adaptada a lo que ya usas):
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Nebulosa — DZI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body { margin:0; height:100%; background:#000; }
+    #osd { width:100%; height:100%; }
+  </style>
+  <!-- Puedes cargar OSD desde CDN o local (libs/openseadragon.min.js) -->
+  <script src="https://cdn.jsdelivr.net/npm/openseadragon@4.1.1/build/openseadragon/openseadragon.min.js"></script>
+</head>
+<body>
+  <div id="osd"></div>
+  <script>
+    // Instancia el visor sobre el div #osd
+    const viewer = OpenSeadragon({
+      id: "osd",                               // contenedor
+      prefixUrl: "https://openseadragon.github.io/openseadragon/images/",
+      tileSources: "nebulosa.dzi",             // el manifiesto DZI
+      showNavigator: true,                     // minimapa
+      navigatorAutoFade: false,                // no ocultar el minimapa
+      animationTime: 0.2,                      // suavidad de las animaciones
+      blendTime: 0.1,                          // transición entre tiles
+      maxZoomPixelRatio: 2                     // permite ampliar ~2x por encima de nativo
+    });
+
+    // Cuando abre, vuelve a la vista completa de la imagen
+    viewer.addHandler('open', () => viewer.viewport.goHome(true));
+  </script>
+</body>
+</html>
+
+
+Parámetros explicados (que suelen entrar en examen):
+
+id: el div donde dibuja OSD.
+
+prefixUrl: ruta a los iconos PNG de los botones (zooms, home…). Si no cargan, solo faltan iconos, el visor sigue funcionando.
+
+tileSources: puede ser "archivo.dzi" o un objeto. Aquí va tu DZI.
+
+showNavigator: activa un minimapa.
+
+navigatorAutoFade: evita que el minimapa desaparezca al rato.
+
+maxZoomPixelRatio: cuánto puedes sobrepasar el 100% nativo (útil para acercar un poco más).
+
+animationTime, blendTime: controlan la fluidez de pan/zoom y el fundido de tiles.
+
+7) ¿Cómo se piden los tiles?
+
+OSD lee nebulosa.dzi (XML) y sabe:
+
+TileSize (256).
+
+Formato (.jpg o .png).
+
+Niveles y dimensiones por nivel.
+
+Patrón de nombres (nebulosa_files/<nivel>/<columna>_<fila>.<ext>).
+
+Al hacer zoom/pan, calcula qué tiles son visibles y hace peticiones HTTP solo para esos.
+
+En examen: “¿Por qué ahora sí se ve la 18k×18k?”
+Porque no se carga completa. Solo los trocitos necesarios (y del nivel que corresponde). En el zoom “lejos” carga tiles de niveles bajos (muy livianos). Al acercar, carga tiles del nivel alto, pero solo de la región visible.
+
+8) Errores típicos (y cómo diagnosticarlos rápido)
+
+Pantalla negra con DZI:
+
+Mira Network:
+
+/nebulosa.dzi debe dar 200. Si 404 → el archivo no está donde crees.
+
+Luego verás /nebulosa_files/<nivel>/<x>_<y>.jpg (o .png). Si 404 → nombre base no coincide o sufijo mal (generaste PNG pero el .dzi apunta a JPG, o viceversa).
+
+“Unable to open … nebulosa.dzi”:
+
+Ruta incorrecta (el viewer no encuentra el .dzi).
+
+Servidor arrancado en carpeta distinta (las rutas relativas fallan).
+
+Se bloquean scripts/CDN:
+
+Adblock, cortafuegos corporativos… Solución: carga OSD en local (libs/openseadragon.min.js) y, si quieres, también los iconos.
+
+9) Diferencia entre usar 1 sola imagen vs DZI en OSD
+
+Una sola imagen (type: "image" + width/height) → el navegador descarga la imagen completa (lento y con límites de textura). Útil para pruebas o imágenes moderadas.
+
+DZI ("archivo.dzi") → el navegador descarga solo los tiles visibles. Es la solución real para imágenes muy grandes.
+
+10) ¿Y si en el examen me preguntan por Leaflet/OpenLayers?
+
+Leaflet + CRS.Simple: sirve para imágenes sin georreferenciar. Con L.tileLayer('{z}/{x}/{y}.png', { tms:true }) puedes leer pirámides TMS (como las que hace GDAL). Es más “de mapas”, pero también va bien con imágenes planas.
+
+OpenLayers: muy potente para GIS. Para una imagen sin proyección/geo, hay que cuadrar proyección custom, extent, tileGrid y flip Y si usas TMS. Es más flexible, pero tiene más “piezas” que encajar.
+
+11) Resumen operativo (la “chuleta”)
+
+No cargues una 18k×18k directamente: supera límites de textura.
+
+Convierte a DZI:
+
+C:\libvips\bin\vips.exe dzsave nebulosa.jpg nebulosa --tile-size 256 --overlap 0 --suffix ".jpg[Q=90]"
+
+
+Estructura:
+
+viewer.html
+nebulosa.dzi
+nebulosa_files/
+
+
+Visor: OpenSeadragon con tileSources: "nebulosa.dzi".
+
+Servidor: npx http-server . -p 8080.
+
+Diagnóstico:
+
+Network 200 en .dzi.
+
+Network 200 en tiles nebulosa_files/....
+
+Si 404 → nombres/rutas/extensiones.
+
+Si quieres, ahora preparo tu viewer.html “de examen”: súper claro, con comentarios pedagógicos línea a línea, y dos botones extra (Zoom + / Home) para que lo memorices y lo adaptes a futuros proyectos. ¿Te lo dejo listo?

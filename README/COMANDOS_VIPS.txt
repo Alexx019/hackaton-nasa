@@ -1,0 +1,16 @@
+Para crear dzi a partir de Imagen Grande:
+
+C:\libvips\bin\vips.exe dzsave .\nebulosa.jpg .\nebulosa ^
+  --tile-size 256 ^
+  --overlap 0 ^
+  --suffix ".jpg[Q=90]"
+
+Para convertir de tif a dzi:
+
+& "C:\libvips\bin\vips.exe" dzsave "input.tif" "out_dzi" `
+  --tile-size=512 `
+  --overlap=1 `
+  --suffix=".jpg[Q=70,strip,interlace]" `
+  --layout=dz
+
+Una vez ya tenemos dzi simplemente hay que meterla en el OpenSeaDragon
