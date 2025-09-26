@@ -189,7 +189,8 @@
 
         poiVisible.set(poi.id, shouldBeVisible);
         if(shouldBeVisible){
-          el.style.display = 'block';
+          el.style.display = 'flex';
+          el.style.flexDirection = 'row';
           el.style.opacity = '1';
           el.style.pointerEvents = 'auto';
         } else {

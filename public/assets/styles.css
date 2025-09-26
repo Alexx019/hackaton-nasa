@@ -1,0 +1,91 @@
+html, body { 
+    margin:0; 
+    height:100%; 
+    background:#111; 
+}
+
+#osd { 
+    width:100%; 
+    height:100%; 
+}
+#log { 
+    position:fixed; 
+    left:8px; 
+    bottom:8px; 
+    color:#0f0; 
+    font:12px monospace;
+    background:rgba(0,0,0,.6); 
+    padding:6px 8px; 
+    border-radius:6px; 
+    z-index:1000; 
+}
+/* Panel lateral básico (el resto lo maneja SidePanel) */
+#sidepanel { 
+    position: fixed; 
+    top:0; 
+    right:0; 
+    height:100%; 
+    width:360px; 
+    max-width:85vw;
+    background:#171717; 
+    color:#eee; 
+    border-left:1px solid #2a2a2a; 
+    transform:translateX(100%);
+    transition:transform .25s ease; 
+    box-shadow:-8px 0 20px rgba(0,0,0,.35); 
+    z-index:999;
+    display:flex; 
+    flex-direction:column; 
+}
+
+#sidepanel.open { 
+    transform:translateX(0); 
+}
+
+/* Wrapper */
+.poi {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  pointer-events: auto;
+  z-index: 100;
+}
+
+/* Pin central */
+.poi-btn {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;             /* cámbialo a 4px si lo quieres cuadrado */
+  background: #00d8ff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 4px rgba(0,0,0,.6);
+  cursor: pointer;
+}
+
+/* Tooltip */
+.poi .tip {
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  transform: translate(-50%, -100%);
+  background: #fff;
+  color: #000;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font: 13px/1.3 system-ui, sans-serif;
+  font-weight: 600;
+  border: 1px solid #333;
+  opacity: 0;
+  transition: opacity .15s ease;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
+.poi:hover .tip {
+  opacity: 1;
+}
+
+/* Por si OSD los pinta debajo del canvas */
+#osd .openseadragon-overlay {
+  z-index: 50 !important;
+}
