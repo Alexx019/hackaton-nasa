@@ -1,8 +1,9 @@
 [
+  { "id": "debug", "x": 0.5, "y": 0.5, "title": "Debug", "desc": "Centro", "minZoom": 0.0 },
   { "id": "p1", "x": 0.732, "y": 0.415, "title": "Región A",
-    "desc": "Nube molecular con emisión intensa.", "minZoom": 1.0 },
+    "desc": "Nube molecular con emisión intensa.", "minZoom": 0.03 },
   { "id": "p2", "x": 0.284, "y": 0.612, "title": "Cúmulo Joven",
-    "desc": "Concentración de estrellas de 5–10 Myr.", "minZoom": 2.0 },
+    "desc": "Concentración de estrellas de 5–10 Myr.", "minZoom": 0.05 },
   { "id": "p3", "x": 0.520, "y": 0.300, "title": "Filamento",
-    "desc": "Estructura filamentaria con polvo frío.", "minZoom": 6.0 }
+    "desc": "Estructura filamentaria con polvo frío.", "minZoom": 0.1 }
 ]

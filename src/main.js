@@ -3,33 +3,55 @@ import { initViewer } from './viewer/initViewer.js';
 import { SidePanel } from './ui/SidePanel.js';
 import { PoiManager } from './overlays/PoiManager.js';
 
-const log = (...a) => { console.log(...a); const el = document.getElementById('log'); if (el) el.textContent = a.join(' '); };
+const log = (...a) => {
+  console.log(...a);
+  const el = document.getElementById('log');
+  if (el) el.textContent = a.join(' ');
+};
 
 const panel = new SidePanel();
 
-const viewer = initViewer({
+let viewer;
+let poiManager;
+let poisData = null;
+
+// 1) Arranca el visor
+viewer = initViewer({
   tileSources: '../resources/ViaLactea/out_dzi.dzi',
   onOpen: () => {
     log('✅ DZI abierto');
-    poiManager.init();
+    // Si ya tenemos datos, inicializamos; si no, init se ejecutará cuando lleguen
+    poiManager?.init(); // internamente se auto-protegerá si aún no hay world item
     viewer.viewport.goHome(true);
   },
-  onZoom: () => poiManager.updateVisibility(),
-  onAnimation: () => poiManager.updateVisibility(),
-  onResize: () => poiManager.addOrUpdateOverlays()
+  onZoom: () => poiManager?.updateVisibility(),
+  onAnimation: () => poiManager?.updateVisibility(),
+  onResize: () => poiManager?.addOrUpdateOverlays()
 });
 
-let poiManager; 
+// 2) Cargar datos (resuelto desde el propio módulo, no desde el HTML)
+const poisUrl = new URL('./config/pois.json', import.meta.url);
 
-const poisUrl = new URL('./config/pois.json', import.meta.url)
+const handlePoiClick = (poi) => {
+    console.log(poi);
+    if (!poi) { 
+        panel.close(); 
+        return; 
+    }
+    panel.open({ title: poi.title, html: `<p>${poi.desc || 'Sin descripción.'}</p>` });
+};
 
-// 👇 Cargar JSON con fetch
 fetch(poisUrl)
-  .then(r => r.json())
-  .then(pois => {
-    poiManager = new PoiManager(viewer, pois, (poi) => {
-      if (!poi) { panel.close(); return; }
-      panel.open({ title: poi.title, html: `<p>${poi.desc || 'Sin descripción.'}</p>` });
-    });
+  .then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status} al cargar pois.json`);
+    return r.json();
   })
-  .catch(err => console.error('Error cargando pois.json', err));
+  .then(pois => {
+    poisData = pois;
+    console.log('📦 POIs cargados:', poisData);
+    // Crear manager con callback de click
+    poiManager = new PoiManager(viewer, poisData, handlePoiClick);
+    // Intento de init (si el visor ya abrió, pintará; si no, quedará listo)
+    poiManager.init();
+  })
+  .catch(err => console.error('Error cargando pois.json:', err));
