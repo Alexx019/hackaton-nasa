@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elige tu misión espacial</title>
+  <style>
+    :root{
+      --bg:#05060a;         /* negro espacial */
+      --muted:#a9b6c7;      /* gris frío para textos */
+      --accent:#ffd166;     /* acento cálido */
+      --glass: rgba(255,255,255,.08);
+      --glass-2: rgba(255,255,255,.14);
+      --shadow: 0 10px 30px rgba(0,0,0,.45);
+      --radius: 22px;
+      --duration: 700ms;    /* duración base animaciones */
+    }
+    /* Reset mínimo */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:#e7ecf3; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      overflow:hidden; /* 1 sola escena */
+    }
+
+    /* =================== Fondo de estrellas (3 capas) =================== */
+    .space{position:fixed; inset:0; overflow:hidden}
+    .stars{
+      position:absolute; inset:-100px; /* margen extra para el desplazamiento */
+      background-repeat:repeat;
+      background-size: 600px 600px;
+      opacity:.9;
+      animation: drift 120s linear infinite;
+      pointer-events:none;
+    }
+    .stars.layer1{ background-image: radial-gradient(1px 1px at 20% 30%, #ffffff 60%, transparent 61%), radial-gradient(1px 1px at 80% 70%, #ffffff 60%, transparent 61%), radial-gradient(2px 2px at 50% 50%, #9db4ff 50%, transparent 51%), radial-gradient(1px 1px at 10% 80%, #ffffff 60%, transparent 61%); filter: blur(.4px); }
+    .stars.layer2{ background-image: radial-gradient(1px 1px at 40% 60%, #ffffff 60%, transparent 61%), radial-gradient(2px 2px at 70% 20%, #bfe6ff 60%, transparent 61%), radial-gradient(1px 1px at 15% 25%, #ffffff 60%, transparent 61%), radial-gradient(2px 2px at 90% 85%, #ffffff 60%, transparent 61%); opacity:.7; animation-duration: 180s; filter: blur(1px)}
+    .stars.layer3{ background-image: radial-gradient(2px 2px at 30% 40%, #ffffff 60%, transparent 61%), radial-gradient(3px 3px at 60% 75%, #ffffff 50%, transparent 51%), radial-gradient(1px 1px at 75% 15%, #ffffff 60%, transparent 61%); opacity:.5; animation-duration: 240s; filter: blur(1.6px)}
+    @keyframes drift{ from{transform:translate3d(0,0,0)} to{transform:translate3d(-600px,-300px,0)} }
+
+    /* =================== Contenedor principal =================== */
+    .scene{ position:relative; height:100dvh; width:100vw; display:grid; place-items:center; }
+
+    .glassbar{ position:absolute; top:20px; left:50%; translate:-50% 0; background:linear-gradient(180deg,var(--glass-2),var(--glass)); backdrop-filter: blur(8px); border:1px solid rgba(255,255,255,.15); border-radius: calc(var(--radius) + 6px); padding:10px 18px; box-shadow: var(--shadow); letter-spacing:.15em; font-weight:700; color:#d6deeb; text-transform:uppercase; }
+
+    /* =================== Carousel =================== */
+    .carousel{ position:relative; width:min(1100px,92vw); height:min(620px,78vh); }
+
+    .card{ position:absolute; inset:0; display:grid; place-items:center; isolation:isolate; }
+    .card[hidden]{ display:none }
+
+    /* Lienzos por capas para paralaje */
+    .layer-bg, .layer-fg{ position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; }
+
+    .planet{ max-width: 78%; max-height: 78%; filter: drop-shadow(0 40px 60px rgba(0,0,0,.55)); opacity:.95; }
+    .craft{ max-width: 55%; max-height: 55%; filter: drop-shadow(0 20px 40px rgba(0,0,0,.65)); }
+
+    .title{ position:absolute; bottom:4%; left:50%; translate:-50% 0; background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06)); border:1px solid rgba(255,255,255,.2); padding:14px 28px; border-radius: 999px; box-shadow: var(--shadow); text-shadow: 0 2px 0 rgba(0,0,0,.25); font-weight:900; font-size: clamp(22px, 4vw, 40px); letter-spacing:.05em; color:#d9e4f5 }
+
+    /* Botones */
+    .nav{
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; padding:0 6px; pointer-events:none;
+    }
+    .btn{
+      pointer-events:auto; width:58px; height:58px; border-radius:50%; display:grid; place-items:center; background:var(--glass); border:1px solid rgba(255,255,255,.18); box-shadow: var(--shadow); cursor:pointer; transition: transform .2s ease, background .2s ease; user-select:none;
+    }
+    .btn:hover{ transform: scale(1.06); background:var(--glass-2)}
+    .btn:active{ transform: scale(.96)}
+    .btn svg{ width:28px; height:28px; fill:#eaf2ff }
+
+    .cta{ position:absolute; right:20px; bottom:20px; padding:14px 18px; border-radius: 14px; font-weight:800; letter-spacing:.04em; border:0; background:linear-gradient(180deg,#5ae6c2,#13c6a7); color:#022; box-shadow: 0 10px 30px rgba(16,231,193,.25); cursor:pointer }
+    .cta:active{ transform: translateY(1px) }
+
+    /* =================== Animaciones de entrada tipo “disco” =================== */
+    @keyframes spinInBR{ 0%{ opacity:0; transform: rotate(22deg) translate3d(30%,55%,0) scale(.7); transform-origin: 85% 95% } 100%{ opacity:1; transform: rotate(0) translate3d(0,0,0) scale(1) } }
+    @keyframes spinInBL{ 0%{ opacity:0; transform: rotate(-22deg) translate3d(-30%,55%,0) scale(.7); transform-origin: 15% 95% } 100%{ opacity:1; transform: rotate(0) translate3d(0,0,0) scale(1) } }
+    @keyframes spinOutTL{ 0%{ opacity:1; transform: rotate(0) translate3d(0,0,0) scale(1)} 100%{ opacity:0; transform: rotate(-16deg) translate3d(-60%,60%,0) scale(.6)} }
+    @keyframes spinOutTR{ 0%{ opacity:1; transform: rotate(0) translate3d(0,0,0) scale(1)} 100%{ opacity:0; transform: rotate(16deg) translate3d(60%,60%,0) scale(.6)} }
+
+    .enter-right{ animation: spinInBR var(--duration) cubic-bezier(.2,.8,.2,1) both }
+    .enter-left { animation: spinInBL var(--duration) cubic-bezier(.2,.8,.2,1) both }
+    .exit-left  { animation: spinOutTL calc(var(--duration)*.65) cubic-bezier(.2,.8,.2,1) both }
+    .exit-right { animation: spinOutTR calc(var(--duration)*.65) cubic-bezier(.2,.8,.2,1) both }
+
+    /* =================== Microinteracciones =================== */
+    .craft.floating{ animation: float 5s ease-in-out infinite }
+    @keyframes float{ 0%{ transform: translateY(0)} 50%{ transform: translateY(-10px)} 100%{ transform: translateY(0)} }
+
+    /* Responsivo */
+    @media (max-width:720px){
+      .btn{ width:50px; height:50px }
+      .planet{ max-width:88%; max-height: 62% }
+      .craft{ max-width: 74%; max-height: 38% }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fondo de estrellas -->
+  <div class="space">
+    <div class="stars layer1" aria-hidden="true"></div>
+    <div class="stars layer2" aria-hidden="true"></div>
+    <div class="stars layer3" aria-hidden="true"></div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="glassbar">ELIGE TU MISIÓN</div>
+
+    <div class="carousel" id="carousel" aria-live="polite">
+      <!-- Tarjetas generadas por JS -->
+    </div>
+
+    <div class="nav">
+      <button class="btn" id="prev" aria-label="Anterior" title="Anterior">
+        <svg viewBox="0 0 24 24" role="img" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </button>
+      <button class="btn" id="next" aria-label="Siguiente" title="Siguiente">
+        <svg viewBox="0 0 24 24" role="img" aria-hidden="true"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </button>
+    </div>
+
+    <button class="cta" id="selectBtn">Seleccionar misión</button>
+  </div>
+
+<script>
+  // =================== Datos de misiones (sustituye rutas por tus imágenes) ===================
+  const missions = [
+    {
+      id: 'artemis',
+      title: 'MISIÓN ARTEMIS',
+      planet: 'resources/luna.png', // 🌓 Ejemplo Luna (reemplaza)
+      craft:  'resources/cohete.png', // 🚀 Cohete (reemplaza)
+    },
+    {
+      id: 'punch',
+      title: 'MISIÓN PUNCH',
+      planet: 'resources/sol-removebg-preview.png', // ☀️ Sol estilizado (reemplaza)
+      craft:  'resources/punch.png', // 🛰️ Satélite (reemplaza)
+    },
+    {
+      id: 'lucy',
+      title: 'MISIÓN LUCY',
+      planet: 'resources/jupiter-removebg-preview.png', // 🪐 Júpiter (reemplaza)
+      craft:  'resources/lucy.png', // 🛰️ Lucy (reemplaza)
+    }
+  ];
+
+  const $ = (sel, el=document) => el.querySelector(sel);
+  const carousel = $('#carousel');
+  const nextBtn = $('#next');
+  const prevBtn = $('#prev');
+  const selectBtn = $('#selectBtn');
+  const scene = $('#scene');
+
+  let index = 0;
+  let busy = false;
+
+  // Construir tarjetas
+  const cards = missions.map((m, i)=>{
+    const card = document.createElement('section');
+    card.className = 'card';
+    card.dataset.id = m.id;
+    card.innerHTML = `
+      <div class="layer-bg" data-depth="0.15">
+        <img class="planet" src="${m.planet}" alt="Fondo de ${m.title}" loading="eager" />
+      </div>
+      <div class="layer-fg" data-depth="0.3">
+        <img class="craft floating" src="${m.craft}" alt="Nave de ${m.title}"/>
+      </div>
+      <div class="title">${m.title}</div>
+    `;
+    if(i!==0) card.setAttribute('hidden','');
+    carousel.appendChild(card);
+    return card;
+  });
+
+  function go(dir){
+    if(busy) return; busy = true;
+    const from = cards[index];
+    let nextIndex = (index + dir + cards.length) % cards.length;
+    const to = cards[nextIndex];
+
+    // Quitar hidden del siguiente y preparar clases
+    to.removeAttribute('hidden');
+    from.classList.remove('enter-left','enter-right');
+    to.classList.remove('enter-left','enter-right','exit-left','exit-right');
+
+    // Direcciones de animación estilo "disco"
+    const outClass = dir>0? 'exit-left':'exit-right';
+    const inClass  = dir>0? 'enter-right':'enter-left';
+
+    from.classList.add(outClass);
+    to.classList.add(inClass);
+
+    // Tras la animación, ocultar el viejo
+    const done = ()=>{
+      from.setAttribute('hidden','');
+      from.classList.remove(outClass);
+      to.classList.remove(inClass);
+      index = nextIndex;
+      busy = false;
+    };
+    to.addEventListener('animationend', done, {once:true});
+  }
+
+  nextBtn.addEventListener('click', ()=>go(1));
+  prevBtn.addEventListener('click', ()=>go(-1));
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowRight') go(1);
+    if(e.key==='ArrowLeft')  go(-1);
+    if(e.key==='Enter')      select();
+  });
+
+  // Efecto parallax con el ratón
+  scene.addEventListener('pointermove', (e)=>{
+    const rect = scene.getBoundingClientRect();
+    const cx = (e.clientX - rect.left)/rect.width - .5;
+    const cy = (e.clientY - rect.top)/rect.height - .5;
+    const active = cards[index];
+    const bg = active.querySelector('[data-depth="0.15"]');
+    const fg = active.querySelector('[data-depth="0.3"]');
+    if(bg) bg.style.transform = `translate(${cx*-12}px, ${cy*-8}px)`;
+    if(fg) fg.style.transform = `translate(${cx*18}px, ${cy*14}px)`;
+    // capas de estrellas para más profundidad
+    document.querySelectorAll('.stars').forEach((el, i)=>{
+      el.style.transform = `translate(${cx*(-6*(i+1))}px, ${cy*(-4*(i+1))}px)`;
+    });
+  });
+
+  function select(){
+    const m = missions[index];
+    // Aquí disparas tu lógica real. De momento, un toast simple.
+    toast(`Misión seleccionada: ${m.title}`);
+  }
+  selectBtn.addEventListener('click', select);
+
+  // Micro-toast
+  function toast(msg){
+    const t = document.createElement('div');
+    t.textContent = msg;
+    Object.assign(t.style,{
+      position:'fixed', left:'50%', bottom:'26px', transform:'translateX(-50%)',
+      background:'linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.08))', color:'#fff',
+      padding:'12px 18px', borderRadius:'14px', border:'1px solid rgba(255,255,255,.25)',
+      boxShadow:'0 10px 30px rgba(0,0,0,.45)', zIndex:1000, opacity:0, transition:'opacity .25s ease, transform .25s ease'
+    });
+    document.body.appendChild(t);
+    requestAnimationFrame(()=>{ t.style.opacity=1; t.style.transform='translate(-50%, -6px)'; });
+    setTimeout(()=>{ t.style.opacity=0; t.style.transform='translate(-50%, 6px)'; setTimeout(()=>t.remove(), 250); }, 1600);
+  }
+</script>
+</body>
+</html>

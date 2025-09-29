@@ -17,7 +17,7 @@ let poisData = null;
 
 // 1) Arranca el visor
 viewer = initViewer({
-  tileSources: '../resources/ViaLactea/out_dzi.dzi',
+  tileSources: '../resources/Celula Cancer Mama/out_dzi.dzi', 
   onOpen: () => {
     log('✅ DZI abierto');
     // Si ya tenemos datos, inicializamos; si no, init se ejecutará cuando lleguen
