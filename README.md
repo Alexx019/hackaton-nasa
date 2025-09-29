@@ -1,4 +1,4 @@
-MVP del proyecto: viewer.html
+MVP del proyecto: public/index.html
 
 ATENCION
 La carpeta resources/ no está en el git pq pesa mucho, pedirmela por privado y os la envío
