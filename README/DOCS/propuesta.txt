@@ -1,0 +1,21 @@
+Proyecto: Apollo Atlas
+
+Objetivo: Aumentar el interés y la formación de la gente a través de la libre exploración y manipulación de imágenes de recientes misiones espaciales y noticias astronómicas. Además de un objetivo científico de tener “mil ojos” que conseguirían un reconocimiento de patrones y etiquetado de imágenes en una sola plataforma unificada aportando información relevante a investigaciones actuales.
+
+Principales usos: 
+
+Un usuario corriente ha visto una noticia de un nuevo cometa interestelar. Entra a la web para conseguir más información del cometa, imágenes de calidad etiquetadas y con información detallada.
+
+Un estudiante / apasionado de la astronomía entra para aportar información que ha obtenido por otros medios sobre una misión específica. Además participa en el foro de dicha misión resolviendo dudas y planteando puntos de vista interesantes.
+
+Un científico trabajando actualmente en la recogida de datos de imágenes de misiones espaciales recientes, puede subir nuevas imágenes, añadir etiquetas nuevas, validar otras y participar en el foro resolviendo dudas.
+
+Principales casos de uso:
+
+Ver info (etiquetas, descripción, imágenes) de una misión astronómica
+Añadir info a una misión astronómica
+Participar en el foro de una misión astronómica
+Validar una etiqueta
+
+Posible enfoque importante:
+- Use of Data: Al fin y al cabo nuestra app trabaja con imágenes muy grandes y convertidas a dzi (carpetas com muchas imágenes divididas por zoom y posición). Esas imágenes estarán en un backend y hay que ver cómo manejar las peticiones de las imágenes para que no haga falta pedir todo de golpe y que tarde mucho y que sea fluido y vaya pidiendo dinámicamente las carpetas de imágenes, etc

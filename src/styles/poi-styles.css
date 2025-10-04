@@ -1,0 +1,79 @@
+/* Estilos para POIs dinámicos */
+.poi {
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 100;
+}
+
+.poi-btn {
+  width: 12px;
+  height: 12px;
+  background: #ff6b35;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.poi:hover .poi-btn {
+  transform: scale(1.2);
+  background: #ff8555;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}
+
+.poi .tip {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.poi:hover .tip {
+  opacity: 1;
+}
+
+/* POIs recién creados tienen un efecto especial */
+.poi.new-poi .poi-btn {
+  animation: poi-pulse 2s ease-in-out;
+  background: #00ff88;
+}
+
+@keyframes poi-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .poi-btn {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .poi .tip {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}

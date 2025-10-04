@@ -1,0 +1,11 @@
+Flujo:
+
+Imagen .tif muy grande
+Convertir a dzi
+Guardar en backend
+
+En frontend solicitud de una imagen
+Cargar una parte de la imagen (p.e. hasta un máx de megas o tiempo)
+Según va haciendo zoom vamos pidiendo dinámicamente más imágenes (con una burbuja de margen para tener maniobra)
+
+Cargar todos los POIs de la imagen (y mostrar dinámicamente según zoom establecido)
